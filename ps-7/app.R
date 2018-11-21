@@ -15,7 +15,9 @@ ui <- fluidPage(
          selectInput(inputId = "question",
                      label = "Select a Polling Topic:",
                      choices = c('NAFTA', 'Tariffs', 'Tax Reform', 'Trump Economy', 'Single Payer Healthcare'),
-                     selected = 'NAFTA')
+                     selected = 'NAFTA'),
+         
+         textOutput('caption')
       ),
       
       # Show a plot of the generated distribution
@@ -37,8 +39,10 @@ server <- function(input, output) {
        plot_ly(x = ~nafta, y = ~error, 
                text = ~newname,
                color = ~newname) %>% 
-       layout(xaxis = list(title = '% Support/Agree with Statement'), 
-              yaxis = list(title = 'Error in predicting Democratic Advantage'))}
+       layout(title = "Polling Errors and Questions",
+              xaxis = list(title = '% of Respondents who support NAFTA'), 
+              yaxis = list(title = 'Error in predicting Democratic Advantage'),
+              subtitle = list(title = 'Weak positive correlation'))}
      
      else if(input$question == 'Tariffs'){
        df %>% 
@@ -48,7 +52,7 @@ server <- function(input, output) {
          plot_ly(x = ~tariff, y = ~error, 
                  text = ~newname,
                  color = ~newname) %>% 
-         layout(xaxis = list(title = '% Support/Agree with Statement'), 
+         layout(xaxis = list(title = '% of Respondents who Support Tariffs'), 
                 yaxis = list(title = 'Error in predicting Democratic Advantage'))}
      
      else if(input$question == 'Tax Reform'){
@@ -59,7 +63,7 @@ server <- function(input, output) {
          plot_ly(x = ~taxreform, y = ~error, 
                  text = ~newname,
                  color = ~newname) %>% 
-         layout(xaxis = list(title = '% Support/Agree with Statement'), 
+         layout(xaxis = list(title = '% of Respondents who support Trump\'s tax reform'), 
                 yaxis = list(title = 'Error in predicting Democratic Advantage'))}
      
      else if(input$question == 'Trump Economy'){
@@ -70,7 +74,7 @@ server <- function(input, output) {
          plot_ly(x = ~trumpecon, y = ~error, 
                  text = ~newname,
                  color = ~newname) %>% 
-         layout(xaxis = list(title = '% Support/Agree with Statement'), 
+         layout(xaxis = list(title = '% who believe that Trump\'s economic policies are beneficial'), 
                 yaxis = list(title = 'Error in predicting Democratic Advantage'))}
      
      else if(input$question == 'Single Payer Healthcare'){
@@ -81,8 +85,39 @@ server <- function(input, output) {
          plot_ly(x = ~singlepay, y = ~error, 
                  text = ~newname,
                  color = ~newname) %>% 
-         layout(xaxis = list(title = '% Support/Agree with Statement'), 
+         layout(xaxis = list(title = '% who believe in single-payer healthcare'), 
                 yaxis = list(title = 'Error in predicting Democratic Advantage'))}
+   })
+   
+   output$caption <- renderText({
+     if(input$question == 'NAFTA'){
+       "Positive correlation (excluding the outlier, CA-49) between the percent of 
+       people who support NAFTA and the error in predicting Democratic Advantages."
+     }
+     
+     else if(input$question == 'Tariffs'){
+       "Positive correlation between the percent of 
+       people who support tariffs on steel and aluminum imposed by President Trump
+       and the error in predicting Democratic Advantages."
+     }
+     
+     else if(input$question == 'Tax Reform'){
+       "Positive correlation between the percent of 
+       people who support President Trump's tax reform bill and the 
+       error in predicting Democratic Advantages."
+     }
+     
+     else if(input$question == 'Trump Economy'){
+       "Positive correlation between the percent of 
+       people who agree that President Trump's policies have made their family's economic situation better
+       and the error in predicting Democratic Advantages."
+     }
+     
+     else if(input$question == 'Single Payer Healthcare'){
+       "Negative correlation between the percent of 
+       people who support single-payer healthcare and the error in predicting Democratic Advantages."
+     }
+     
    })
 }
 
