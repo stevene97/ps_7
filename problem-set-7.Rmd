@@ -1,0 +1,205 @@
+---
+title: "Problem Set 7"
+author: "Steven Espinoza"
+date: "11/18/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(haven)
+library(fs)
+library(lubridate)
+library(kableExtra)
+library(janitor)
+library(stringr)
+library(plotly)
+```
+
+
+```{r}
+# Read in file from the second midterm
+download.file(url = "https://goo.gl/ZRCBda",
+              destfile = "master.zip",
+              quiet = TRUE,
+              mode = "wb")
+
+# Unzip
+unzip("master.zip")
+
+# Create two dataframes: one for polling data (Upshot), the other with results data (Piazza)
+piazza <- read_csv('mt_2_results.csv')
+
+# Loading in the results data in a similar fashion to what was done on the midterm: 
+# As we did in class, the first thing to do here would be to create a vector with all the file names contained in the 2018-live-poll-results-master/data file.
+file_names <- dir_ls("2018-live-poll-results-master/data/")
+
+# Also from class: reading in the files into one big tibble.
+all_data <- map_dfr(file_names, read_csv, .id = "source")
+
+# Also from midterm: making a column for states and type of race
+# Creating new variables: First step is to break apart the dashes into separate columns.
+all_data <- all_data %>% 
+  separate(source, into = paste("V", 1:11, sep = "-"))
+
+# Cleaning column names (yes, I read chapter 2 from the Tidyverse Style Guide)
+all_data <- all_data %>% 
+  clean_names()
+
+# The new data table created a bunch of new columns labeled v_1, v_2, ..., v_11. In here, the column labeled v_9 tells us the both the state and whether the race being polled was a Senate race or a House race. If it was a Senate race, the variable contained "sen"; else, it contained the number of the district being polled.
+
+# First step: creating a new variable "state" that simply substrings the first two letters of V9
+for(i in 1:nrow(all_data)){
+    all_data$state[i] = (substr(all_data$v_9[[i]], 1, 2))
+}
+
+# Second step: creating a new variable "type_of_race" that returns the district number if it was a House race, or "sen" if it was the senate race.
+for(i in 1:nrow(all_data)){
+    all_data$type_of_race[i] = substr(all_data$v_9[[i]], 3, nchar(all_data$v_9[[i]]))
+}
+
+# Making each state uppercase
+all_data$state = str_to_upper(all_data$state)
+
+```
+
+# Looking at the relationship between polling error and type of question:
+# First: tabulating the predicted margins from the last wave of the Upshot polls
+
+```{r}
+# First question I want to focus on: NAFTA
+nafta <- all_data %>% 
+  filter(!is.na(nafta)) %>%
+  select(v_9, nafta) %>% 
+  group_by(v_9) %>% 
+  count(nafta) %>% 
+  spread(nafta, n) %>% 
+  mutate(nafta = 100 * Support / (Support + Oppose + `Don't know`)) %>% 
+  select(v_9, nafta)
+
+# Races for which this question as asked:
+unique(nafta$v_9)
+```
+
+```{r}
+# Second question: tariff
+tariff <- all_data %>% 
+  filter(!is.na(tariff)) %>%
+  select(v_9, tariff) %>% 
+  group_by(v_9) %>% 
+  count(tariff) %>% 
+  spread(tariff, n) %>% 
+  mutate(tariff = 100 * Support / (Support + Oppose + `Don't know`)) %>% 
+  select(v_9, tariff)
+
+# Races for which this question as asked:
+unique(tariff$v_9)
+```
+
+```{r}
+# Third question: taxreform
+taxreform <- all_data %>% 
+  filter(!is.na(taxreform)) %>%
+  select(v_9, taxreform) %>% 
+  group_by(v_9) %>% 
+  count(taxreform) %>% 
+  spread(taxreform, n) %>% 
+  mutate(taxreform = 100 * Support / (Support + Oppose + `Don't know`)) %>% 
+  select(v_9, taxreform)
+
+# Races for which this question as asked:
+unique(taxreform$v_9)
+```
+
+```{r}
+# Fourth question: trumpecon
+trumpecon <- all_data %>% 
+  filter(!is.na(trumpecon)) %>%
+  select(v_9, trumpecon) %>% 
+  group_by(v_9) %>% 
+  count(trumpecon) %>% 
+  spread(trumpecon, n) %>% 
+  mutate(trumpecon = 100 * agree / (agree + disagree + `Don't know`)) %>% 
+  select(v_9, trumpecon)
+
+# Races for which this question as asked:
+unique(trumpecon$v_9)
+```
+
+
+```{r}
+# Fifth question: singlepay
+singlepay <- all_data %>% 
+  filter(!is.na(singlepay)) %>%
+  select(v_9, singlepay) %>% 
+  group_by(v_9) %>% 
+  count(singlepay) %>% 
+  spread(singlepay, n) %>% 
+  mutate(singlepay = 100 * Support / (Support + Oppose + `Don't know`)) %>% 
+  select(v_9, singlepay)
+
+# Races for which this question as asked:
+unique(singlepay$v_9)
+```
+
+```{r}
+# Making a table with five columns: "Polling Advantage (Dems)", "Results Advantage (Dems)", and the five questions above
+# Step 1: calculating Democratic Advantage
+all_data1 <- all_data %>% 
+  group_by(v_9, response) %>% 
+  filter(likely != "[DO NOT READ] Don\'t know/Refused") %>% 
+  tally(wt = final_weight) %>% 
+  spread(response, n) %>%
+  clean_names()
+
+# Making NA values 0
+all_data1[is.na(all_data1)] <- 0
+
+# Calculating dem advantage (polls)
+all_data1 <- all_data1 %>% 
+  mutate('dem_poll_advantage' = dem / (dem + rep + und + x3 + x4 + x5 + x6))
+
+all_data1 <- all_data1 %>% select('v_9', 'dem_poll_advantage')
+
+# Next step: calculating dem advantage (results)
+piazza1 <- piazza %>% 
+  # First step is to paste the "state" and "district" so I could get a list of all the races in a manner that matches the format of the first dataframe.
+  mutate(v_9 = paste(str_to_lower(state), district, sep='')) %>% 
+  # Next step: calculate dem advantage
+  mutate('dem_results_advantage' = dem_votes / (dem_votes + rep_votes + other_votes)) %>% 
+  select(v_9, dem_results_advantage)
+
+# Join the two tables and drop if v_9 contains "sen" (only trying to look at house races) and calculating error (in percent):
+merged <- left_join(all_data1, piazza1, "v_9") %>% 
+  filter(!str_detect(v_9, "sen")) %>% 
+  mutate(error = 100 * (dem_results_advantage - dem_poll_advantage))
+```
+
+```{r}
+# Final step: joining "merged" with question results
+merged_thing <- merged %>% 
+  select(v_9, error) %>% 
+  left_join(nafta, 'v_9') %>% 
+  left_join(tariff, 'v_9') %>% 
+  left_join(taxreform, 'v_9') %>% 
+  left_join(trumpecon, 'v_9') %>% 
+  left_join(singlepay, 'v_9') %>% 
+  filter(!is.na(singlepay) | !is.na(nafta))
+
+```
+
+```{r}
+merged_thing %>% 
+  select(v_9, error, nafta) %>% 
+  mutate('newname' = paste(str_to_upper(substr(v_9, 1, 2)), "-", substr(v_9, 3, 4), sep='')) %>% 
+  filter(!is.na(nafta)) %>% 
+  plot_ly(x = ~nafta, y = ~error, 
+          text = ~newname,
+          color = ~newname) %>% 
+  layout(xaxis = list(title = '% Support/Agree with Statement'), yaxis = list(title = 'Error in predicting Democratic Advantage'))
+
+
+
+```
+
