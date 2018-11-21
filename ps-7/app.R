@@ -1,4 +1,6 @@
 library(shiny)
+library(tidyverse)
+library(plotly)
 
 df <- read.csv('merged_thing.csv') %>% 
   select(-X)
