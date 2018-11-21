@@ -18,7 +18,7 @@ library(plotly)
 ```
 
 
-```{r}
+```{r loading, echo=FALSE, warning=FALSE}
 # Read in file from the second midterm
 download.file(url = "https://goo.gl/ZRCBda",
               destfile = "master.zip",
@@ -67,7 +67,7 @@ all_data$state = str_to_upper(all_data$state)
 # Looking at the relationship between polling error and type of question:
 # First: tabulating the predicted margins from the last wave of the Upshot polls
 
-```{r}
+```{r q1, echo=FALSE}
 # First question I want to focus on: NAFTA
 nafta <- all_data %>% 
   filter(!is.na(nafta)) %>%
@@ -82,7 +82,7 @@ nafta <- all_data %>%
 unique(nafta$v_9)
 ```
 
-```{r}
+```{r q2, echo=FALSE}
 # Second question: tariff
 tariff <- all_data %>% 
   filter(!is.na(tariff)) %>%
@@ -97,7 +97,7 @@ tariff <- all_data %>%
 unique(tariff$v_9)
 ```
 
-```{r}
+```{r q3, echo=FALSE}
 # Third question: taxreform
 taxreform <- all_data %>% 
   filter(!is.na(taxreform)) %>%
@@ -112,7 +112,7 @@ taxreform <- all_data %>%
 unique(taxreform$v_9)
 ```
 
-```{r}
+```{r q4, echo=FALSE}
 # Fourth question: trumpecon
 trumpecon <- all_data %>% 
   filter(!is.na(trumpecon)) %>%
@@ -128,7 +128,7 @@ unique(trumpecon$v_9)
 ```
 
 
-```{r}
+```{r q5, echo=FALSE}
 # Fifth question: singlepay
 singlepay <- all_data %>% 
   filter(!is.na(singlepay)) %>%
@@ -143,7 +143,7 @@ singlepay <- all_data %>%
 unique(singlepay$v_9)
 ```
 
-```{r}
+```{r mergingtables, echo=FALSE}
 # Making a table with five columns: "Polling Advantage (Dems)", "Results Advantage (Dems)", and the five questions above
 # Step 1: calculating Democratic Advantage
 all_data1 <- all_data %>% 
@@ -176,7 +176,7 @@ merged <- left_join(all_data1, piazza1, "v_9") %>%
   mutate(error = 100 * (dem_results_advantage - dem_poll_advantage))
 ```
 
-```{r}
+```{r finalstep, echo=FALSE}
 # Final step: joining "merged" with question results
 merged_thing <- merged %>% 
   select(v_9, error) %>% 
@@ -189,7 +189,7 @@ merged_thing <- merged %>%
 
 ```
 
-```{r}
+```{r testing, echo=FALSE}
 merged_thing %>% 
   select(v_9, error, nafta) %>% 
   mutate('newname' = paste(str_to_upper(substr(v_9, 1, 2)), "-", substr(v_9, 3, 4), sep='')) %>% 
